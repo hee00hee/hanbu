@@ -8,186 +8,104 @@
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <style>
-        * {
-            margin: 0;
-            padding: 0;
-            box-sizing: border-box;
-        }
-
         body {
             font-family: 'Jua', sans-serif;
+            text-align: center;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
-            color: white;
+            margin: 0;
+            padding: 20px;
             min-height: 100vh;
-            display: flex;
-            flex-direction: column;
-            padding: 10px;
+            color: white;
         }
         
         .container {
-            max-width: 900px;
+            max-width: 800px;
             margin: 0 auto;
             background: rgba(255, 255, 255, 0.1);
             border-radius: 20px;
-            padding: 20px;
+            padding: 30px;
             backdrop-filter: blur(10px);
             box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
-            flex: 1;
-            display: flex;
-            flex-direction: column;
-            height: calc(100vh - 20px);
         }
         
         h1 {
-            font-size: 2em;
-            margin-bottom: 15px;
-            text-align: center;
+            font-size: 2.5em;
+            margin-bottom: 30px;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
-        }
-        
-        .debug-info {
-            background: rgba(0, 0, 0, 0.3);
-            padding: 8px;
-            border-radius: 10px;
-            margin-bottom: 15px;
-            font-size: 0.9em;
-            text-align: center;
-        }
-        
-        .score-board {
-            display: flex;
-            justify-content: space-around;
-            margin-bottom: 20px;
-            font-size: 1em;
-        }
-        
-        .score-item {
-            background: rgba(255, 255, 255, 0.2);
-            padding: 10px 15px;
-            border-radius: 10px;
-            min-width: 80px;
-            text-align: center;
         }
         
         .game-area {
             display: flex;
             justify-content: center;
-            align-items: stretch;
+            align-items: flex-start;
             gap: 20px;
-            margin-bottom: 20px;
-            flex: 1;
+            margin: 40px 0;
+            flex-wrap: nowrap;
         }
         
         .player-section, .ai-section {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 15px;
             padding: 15px;
-            width: 220px;
+            width: 240px;
+            flex-shrink: 0;
             display: flex;
             flex-direction: column;
             align-items: center;
-            justify-content: space-between;
         }
         
-        .section-header {
-            font-size: 1.2em;
-            margin-bottom: 10px;
-            text-align: center;
-        }
-        
-        #webcam-container, .ai-display {
+        #webcam-container {
             width: 200px;
             height: 200px;
             border: 3px solid #fff;
             border-radius: 15px;
+            margin: 0 auto 15px;
             overflow: hidden;
             background: #000;
-            display: flex;
-            align-items: center;
-            justify-content: center;
         }
         
         .ai-display {
-            background: rgba(100,100,100,0.3);
-        }
-        
-        .prediction-container {
-            font-size: 0.7em;
-            max-height: 40px;
-            overflow-y: auto;
-            width: 100%;
-            margin: 8px 0;
-        }
-        
-        #label-container div {
-            margin: 1px 0;
-            padding: 2px;
-            background: rgba(255, 255, 255, 0.1);
-            border-radius: 3px;
-            font-size: 0.6em;
-            text-align: center;
-        }
-        
-        .status-text {
-            font-size: 0.9em;
-            text-align: center;
-            margin: 8px 0;
-        }
-        
-        .vs {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #fff;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 15px;
             display: flex;
             align-items: center;
             justify-content: center;
-            margin: 0 10px;
+            border: 3px solid #fff;
+            border-radius: 15px;
+            background: rgba(100,100,100,0.3);
         }
         
-        .result-area {
-            text-align: center;
-            margin-bottom: 15px;
-            min-height: 40px;
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            font-size: 1.2em;
         }
         
-        .result {
-            font-size: 1.5em;
-            font-weight: bold;
-            margin: 10px 0;
-        }
-        
-        .win { color: #00ff88; }
-        .lose { color: #ff4757; }
-        .draw { color: #ffa502; }
-        
-        .countdown {
-            font-size: 2.5em;
-            font-weight: bold;
-            color: #ff6b6b;
-            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        .score-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px 25px;
+            border-radius: 10px;
+            min-width: 100px;
         }
         
         .controls {
-            display: flex;
-            justify-content: center;
-            gap: 10px;
-            flex-wrap: wrap;
-            margin-top: auto;
+            margin: 30px 0;
         }
         
         button {
             background: linear-gradient(45deg, #663399, #4a1a4a);
             border: none;
             color: white;
-            padding: 12px 20px;
-            font-size: 1em;
+            padding: 15px 30px;
+            font-size: 1.1em;
             font-family: 'Jua', sans-serif;
             border-radius: 25px;
             cursor: pointer;
+            margin: 10px;
             transition: all 0.3s ease;
             box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
-            min-width: 120px;
         }
         
         button:hover {
@@ -200,36 +118,62 @@
             cursor: not-allowed;
             transform: none;
         }
-
-        @media (max-width: 768px) {
-            .game-area {
-                flex-direction: column;
-                align-items: center;
-            }
-            
-            .vs {
-                transform: rotate(90deg);
-                margin: 10px 0;
-            }
-            
-            .player-section, .ai-section {
-                width: 250px;
-                margin: 5px 0;
-            }
-            
-            h1 {
-                font-size: 1.5em;
-            }
-            
-            .controls {
-                gap: 5px;
-            }
-            
-            button {
-                padding: 10px 15px;
-                font-size: 0.9em;
-                min-width: 100px;
-            }
+        
+        .countdown {
+            font-size: 3em;
+            font-weight: bold;
+            color: #ff6b6b;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .result {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 20px 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .win { color: #00ff88; }
+        .lose { color: #ff4757; }
+        .draw { color: #ffa502; }
+        
+        .prediction-container {
+            margin: 10px 0;
+            font-size: 0.9em;
+            max-height: 80px;
+            overflow-y: auto;
+            width: 100%;
+        }
+        
+        #label-container div {
+            margin: 3px 0;
+            padding: 5px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 5px;
+            font-size: 0.8em;
+        }
+        
+        .vs {
+            font-size: 2.5em;
+            font-weight: bold;
+            color: #fff;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 15px;
+            min-width: 60px;
+        }
+        
+        .debug-info {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-size: 0.9em;
         }
     </style>
 </head>
@@ -258,30 +202,27 @@
         
         <div class="game-area">
             <div class="player-section">
-                <div class="section-header">👤 플레이어</div>
+                <h3>👤 플레이어</h3>
                 <div id="webcam-container"></div>
                 <div class="prediction-container">
                     <div id="label-container"></div>
                 </div>
-                <div class="status-text">플레이어 준비!</div>
+                <div style="margin: 10px 0; font-size: 0.9em; text-align: center;">플레이어 준비!</div>
             </div>
             
             <div class="vs">VS</div>
             
             <div class="ai-section">
-                <div class="section-header">🤖 AI</div>
+                <h3>🤖 AI</h3>
                 <div class="ai-display">
                     <div style="font-size: 3em;" id="ai-choice">🤖</div>
                 </div>
-                <div style="height: 40px;"></div>
-                <div class="status-text">AI 준비 완료!</div>
+                <div style="margin: 10px 0; font-size: 0.9em; text-align: center;">AI 준비 완료!</div>
             </div>
         </div>
         
-        <div class="result-area">
-            <div class="result" id="game-result"></div>
-            <div class="countdown" id="countdown"></div>
-        </div>
+        <div class="result" id="game-result"></div>
+        <div class="countdown" id="countdown"></div>
         
         <div class="controls">
             <button id="start-btn" onclick="init()">카메라 시작</button>
@@ -291,12 +232,14 @@
     </div>
 
     <script type="text/javascript">
+        // 티치어블머신 원본 그대로
         const URL = "./";
         
         let model, webcam, labelContainer, maxPredictions;
         let isGameActive = false;
         let gameStats = { wins: 0, draws: 0, losses: 0 };
         
+        // 게임 선택지
         const choices = ['가위', '바위', '보'];
         const choiceEmojis = { '가위': '✂️', '바위': '✊', '보': '✋' };
         
@@ -305,6 +248,7 @@
             console.log(message);
         }
         
+        // 티치어블머신 원본 init 함수
         async function init() {
             try {
                 updateDebug("모델 로딩 중...");
@@ -312,20 +256,23 @@
                 const modelURL = URL + "model.json";
                 const metadataURL = URL + "metadata.json";
                 
+                // load the model and metadata
                 model = await tmImage.load(modelURL, metadataURL);
                 maxPredictions = model.getTotalClasses();
                 
                 updateDebug(`모델 로드 완료! 클래스 수: ${maxPredictions}`);
                 
-                const flip = true;
-                webcam = new tmImage.Webcam(200, 200, flip); // 아까 크기로 복원
-                await webcam.setup();
+                // Convenience function to setup a webcam
+                const flip = true; // whether to flip the webcam
+                webcam = new tmImage.Webcam(200, 200, flip); // width, height, flip
+                await webcam.setup(); // request access to the webcam
                 await webcam.play();
                 window.requestAnimationFrame(loop);
                 
+                // append elements to the DOM
                 document.getElementById("webcam-container").appendChild(webcam.canvas);
                 labelContainer = document.getElementById("label-container");
-                for (let i = 0; i < maxPredictions; i++) {
+                for (let i = 0; i < maxPredictions; i++) { // and class labels
                     labelContainer.appendChild(document.createElement("div"));
                 }
                 
@@ -341,14 +288,16 @@
         }
         
         async function loop() {
-            webcam.update();
+            webcam.update(); // update the webcam frame
             if (!isGameActive) {
                 await predict();
             }
             window.requestAnimationFrame(loop);
         }
         
+        // 티치어블머신 원본 predict 함수 (아까 잘 됐던 버전)
         async function predict() {
+            // predict can take in an image, video or canvas html element
             const prediction = await model.predict(webcam.canvas);
             
             let bestChoice = null;
@@ -358,23 +307,21 @@
                 const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
                 labelContainer.childNodes[i].innerHTML = classPrediction;
                 
-                // 가장 높은 확률 찾기 (아까 작동했던 로직 복원)
+                // 가장 높은 확률 찾기
                 if (prediction[i].probability > bestProbability) {
                     bestProbability = prediction[i].probability;
                     bestChoice = prediction[i].className;
                 }
             }
             
-            // 실시간 표시 (아까 있던 기능 복원)
-            if (bestProbability > 0.6) {
+            // 확률이 70% 이상이면 표시 (아까 잘 됐던 설정)
+            if (bestProbability > 0.7) {
                 const emoji = choiceEmojis[bestChoice] || '🤔';
-                // 실시간으로 AI 박스에 표시하지 않고 디버그 정보만 업데이트
                 updateDebug(`현재 인식: ${bestChoice} (${(bestProbability*100).toFixed(1)}%)`);
-            } else {
-                updateDebug("손동작을 명확하게 해주세요");
             }
         }
         
+        // 게임 시작
         async function playGame() {
             if (!webcam || !model) {
                 alert("먼저 카메라를 시작해주세요!");
@@ -388,16 +335,20 @@
             
             updateDebug("게임 시작! 3초 후 촬영합니다!");
             
+            // 카운트다운
             await countdown();
             
+            // AI 선택 (랜덤)
             const aiChoice = choices[Math.floor(Math.random() * choices.length)];
             document.getElementById("ai-choice").innerHTML = choiceEmojis[aiChoice];
             
             updateDebug(`AI가 ${aiChoice}를 선택했습니다!`);
             
+            // 플레이어 선택 감지
             const playerChoice = await detectPlayerChoice();
             updateDebug(`플레이어: ${playerChoice}, AI: ${aiChoice}`);
             
+            // 승부 판정
             const result = determineWinner(playerChoice, aiChoice);
             displayResult(result, playerChoice, aiChoice);
             updateScore(result);
@@ -406,6 +357,7 @@
             document.getElementById("play-btn").disabled = false;
         }
         
+        // 카운트다운
         function countdown() {
             return new Promise((resolve) => {
                 let count = 3;
@@ -426,6 +378,7 @@
             });
         }
         
+        // 플레이어 선택 감지
         async function detectPlayerChoice() {
             if (!model || !webcam) return '가위';
             
@@ -443,6 +396,7 @@
             return bestChoice;
         }
         
+        // 승부 판정
         function determineWinner(player, ai) {
             if (player === ai) return 'draw';
             
@@ -457,6 +411,7 @@
             return 'lose';
         }
         
+        // 결과 표시
         function displayResult(result, player, ai) {
             const resultEl = document.getElementById("game-result");
             
@@ -476,6 +431,7 @@
             }
         }
         
+        // 점수 업데이트
         function updateScore(result) {
             gameStats[result === 'win' ? 'wins' : result === 'lose' ? 'losses' : 'draws']++;
             
@@ -484,6 +440,7 @@
             document.getElementById("losses").innerHTML = gameStats.losses;
         }
         
+        // 점수 리셋
         function resetScore() {
             gameStats = { wins: 0, draws: 0, losses: 0 };
             document.getElementById("wins").innerHTML = "0";
