@@ -1,10 +1,412 @@
-​<html>
+<!DOCTYPE html>
+<html lang="ko">
 <head>
-<title>연습용 페이지</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI 가위바위보 게임</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
+    <style>
+        body {
+            font-family: 'Arial', sans-serif;
+            text-align: center;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            margin: 0;
+            padding: 20px;
+            min-height: 100vh;
+            color: white;
+        }
+        
+        .container {
+            max-width: 800px;
+            margin: 0 auto;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 20px;
+            padding: 30px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 8px 32px rgba(0, 0, 0, 0.1);
+        }
+        
+        h1 {
+            font-size: 2.5em;
+            margin-bottom: 30px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.3);
+        }
+        
+        .game-area {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+            margin: 40px 0;
+            flex-wrap: wrap;
+        }
+        
+        .player-section, .ai-section {
+            background: rgba(255, 255, 255, 0.2);
+            border-radius: 15px;
+            padding: 20px;
+            margin: 10px;
+            min-width: 250px;
+        }
+        
+        #webcam-container {
+            width: 224px;
+            height: 224px;
+            border: 3px solid #fff;
+            border-radius: 15px;
+            margin: 0 auto 20px;
+            overflow: hidden;
+            background: #000;
+        }
+        
+        .choice-display {
+            font-size: 4em;
+            margin: 20px 0;
+            min-height: 80px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .score-board {
+            display: flex;
+            justify-content: space-around;
+            margin: 30px 0;
+            font-size: 1.2em;
+        }
+        
+        .score-item {
+            background: rgba(255, 255, 255, 0.2);
+            padding: 15px 25px;
+            border-radius: 10px;
+            min-width: 100px;
+        }
+        
+        .controls {
+            margin: 30px 0;
+        }
+        
+        button {
+            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            border: none;
+            color: white;
+            padding: 15px 30px;
+            font-size: 1.1em;
+            border-radius: 25px;
+            cursor: pointer;
+            margin: 10px;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
+        }
+        
+        button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+        }
+        
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+        }
+        
+        .countdown {
+            font-size: 3em;
+            font-weight: bold;
+            color: #ff6b6b;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+        
+        .result {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 20px 0;
+            min-height: 60px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        .win { color: #00ff88; }
+        .lose { color: #ff4757; }
+        .draw { color: #ffa502; }
+        
+        .prediction-container {
+            margin: 20px 0;
+            font-size: 1.1em;
+        }
+        
+        #label-container div {
+            margin: 5px 0;
+            padding: 8px;
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 8px;
+        }
+        
+        .vs {
+            font-size: 2em;
+            font-weight: bold;
+            margin: 0 20px;
+            text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+        }
+    </style>
 </head>
-<body>안녕?
-<h1>졸리다</h1>
-<h4>언제 끝나</h4>
-<p>켁</p>
+<body>
+    <div class="container">
+        <h1>🎮 AI 가위바위보 게임</h1>
+        
+        <div class="score-board">
+            <div class="score-item">
+                <div>승리</div>
+                <div id="wins">0</div>
+            </div>
+            <div class="score-item">
+                <div>무승부</div>
+                <div id="draws">0</div>
+            </div>
+            <div class="score-item">
+                <div>패배</div>
+                <div id="losses">0</div>
+            </div>
+        </div>
+        
+        <div class="game-area">
+            <div class="player-section">
+                <h3>👤 플레이어</h3>
+                <div id="webcam-container"></div>
+                <div class="prediction-container">
+                    <div id="label-container"></div>
+                </div>
+                <div class="choice-display" id="player-choice">🤔</div>
+            </div>
+            
+            <div class="vs">VS</div>
+            
+            <div class="ai-section">
+                <h3>🤖 AI</h3>
+                <div style="width: 224px; height: 224px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; border: 3px solid #fff; border-radius: 15px; background: rgba(255,255,255,0.1);">
+                    <div style="font-size: 4em;" id="ai-thinking">🤖</div>
+                </div>
+                <div style="margin: 20px 0; font-size: 1.1em;">AI 준비 완료!</div>
+                <div class="choice-display" id="ai-choice">🤔</div>
+            </div>
+        </div>
+        
+        <div class="result" id="game-result"></div>
+        <div class="countdown" id="countdown"></div>
+        
+        <div class="controls">
+            <button id="start-btn" onclick="startCamera()">카메라 시작</button>
+            <button id="play-btn" onclick="playGame()" disabled>게임 시작</button>
+            <button onclick="resetScore()">점수 리셋</button>
+        </div>
+    </div>
+
+    <script type="text/javascript">
+        // 현재 폴더에 있는 모델 파일들을 사용
+        const URL = "./";
+        
+        let model, webcam, labelContainer, maxPredictions;
+        let isGameActive = false;
+        let gameStats = { wins: 0, draws: 0, losses: 0 };
+        
+        // 게임 선택지
+        const choices = ['가위', '바위', '보'];
+        const choiceEmojis = { '가위': '✂️', '바위': '✊', '보': '✋' };
+        
+        // 모델 로드
+        async function init() {
+            const modelURL = URL + "model.json";
+            const metadataURL = URL + "metadata.json";
+            
+            try {
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+                console.log("모델 로드 완료!");
+            } catch (error) {
+                console.error("모델 로드 실패:", error);
+                alert("모델을 로드할 수 없습니다. 파일 경로를 확인해주세요.");
+            }
+        }
+        
+        // 카메라 시작
+        async function startCamera() {
+            if (!model) {
+                await init();
+            }
+            
+            const flip = true;
+            webcam = new tmImage.Webcam(224, 224, flip);
+            await webcam.setup();
+            await webcam.play();
+            window.requestAnimationFrame(loop);
+            
+            document.getElementById("webcam-container").appendChild(webcam.canvas);
+            document.getElementById("start-btn").disabled = true;
+            document.getElementById("play-btn").disabled = false;
+            
+            // 예측 결과 표시 컨테이너 생성
+            labelContainer = document.getElementById("label-container");
+            for (let i = 0; i < maxPredictions; i++) {
+                labelContainer.appendChild(document.createElement("div"));
+            }
+        }
+        
+        async function loop() {
+            webcam.update();
+            if (!isGameActive) {
+                await predict();
+            }
+            window.requestAnimationFrame(loop);
+        }
+        
+        // 예측 함수
+        async function predict() {
+            if (!model || !webcam) return;
+            
+            const prediction = await model.predict(webcam.canvas);
+            
+            for (let i = 0; i < maxPredictions; i++) {
+                const className = prediction[i].className;
+                const probability = (prediction[i].probability * 100).toFixed(1);
+                labelContainer.childNodes[i].innerHTML = `${className}: ${probability}%`;
+                
+                // 가장 높은 확률의 선택지 표시
+                if (probability > 70) {
+                    document.getElementById("player-choice").innerHTML = choiceEmojis[className] || '🤔';
+                }
+            }
+        }
+        
+        // 게임 시작
+        async function playGame() {
+            if (!webcam || !model) {
+                alert("먼저 카메라를 시작해주세요!");
+                return;
+            }
+            
+            isGameActive = true;
+            document.getElementById("play-btn").disabled = true;
+            document.getElementById("game-result").innerHTML = "";
+            document.getElementById("player-choice").innerHTML = "🤔";
+            document.getElementById("ai-choice").innerHTML = "🤔";
+            
+            // 카운트다운
+            await countdown();
+            
+            // 플레이어 선택 감지
+            const playerChoice = await detectPlayerChoice();
+            
+            // AI 선택 (랜덤)
+            const aiChoice = choices[Math.floor(Math.random() * choices.length)];
+            
+            // 결과 표시
+            document.getElementById("player-choice").innerHTML = choiceEmojis[playerChoice];
+            document.getElementById("ai-choice").innerHTML = choiceEmojis[aiChoice];
+            
+            // 승부 판정
+            const result = determineWinner(playerChoice, aiChoice);
+            displayResult(result);
+            updateScore(result);
+            
+            isGameActive = false;
+            document.getElementById("play-btn").disabled = false;
+        }
+        
+        // 카운트다운
+        function countdown() {
+            return new Promise((resolve) => {
+                let count = 3;
+                const countdownEl = document.getElementById("countdown");
+                
+                const timer = setInterval(() => {
+                    countdownEl.innerHTML = count > 0 ? count : "촬영!";
+                    
+                    if (count === 0) {
+                        setTimeout(() => {
+                            countdownEl.innerHTML = "";
+                            clearInterval(timer);
+                            resolve();
+                        }, 1000);
+                    }
+                    count--;
+                }, 1000);
+            });
+        }
+        
+        // 플레이어 선택 감지
+        async function detectPlayerChoice() {
+            if (!model || !webcam) return '가위';
+            
+            const prediction = await model.predict(webcam.canvas);
+            let bestChoice = '가위';
+            let bestProbability = 0;
+            
+            for (let i = 0; i < maxPredictions; i++) {
+                if (prediction[i].probability > bestProbability) {
+                    bestProbability = prediction[i].probability;
+                    bestChoice = prediction[i].className;
+                }
+            }
+            
+            return bestChoice;
+        }
+        
+        // 승부 판정
+        function determineWinner(player, ai) {
+            if (player === ai) return 'draw';
+            
+            if (
+                (player === '가위' && ai === '보') ||
+                (player === '바위' && ai === '가위') ||
+                (player === '보' && ai === '바위')
+            ) {
+                return 'win';
+            }
+            
+            return 'lose';
+        }
+        
+        // 결과 표시
+        function displayResult(result) {
+            const resultEl = document.getElementById("game-result");
+            
+            switch (result) {
+                case 'win':
+                    resultEl.innerHTML = "🎉 승리!";
+                    resultEl.className = "result win";
+                    break;
+                case 'lose':
+                    resultEl.innerHTML = "😢 패배!";
+                    resultEl.className = "result lose";
+                    break;
+                case 'draw':
+                    resultEl.innerHTML = "🤝 무승부!";
+                    resultEl.className = "result draw";
+                    break;
+            }
+        }
+        
+        // 점수 업데이트
+        function updateScore(result) {
+            gameStats[result === 'win' ? 'wins' : result === 'lose' ? 'losses' : 'draws']++;
+            
+            document.getElementById("wins").innerHTML = gameStats.wins;
+            document.getElementById("draws").innerHTML = gameStats.draws;
+            document.getElementById("losses").innerHTML = gameStats.losses;
+        }
+        
+        // 점수 리셋
+        function resetScore() {
+            gameStats = { wins: 0, draws: 0, losses: 0 };
+            document.getElementById("wins").innerHTML = "0";
+            document.getElementById("draws").innerHTML = "0";
+            document.getElementById("losses").innerHTML = "0";
+            document.getElementById("game-result").innerHTML = "";
+        }
+        
+        // 페이지 로드 시 모델 초기화
+        window.onload = init;
+    </script>
 </body>
 </html>
