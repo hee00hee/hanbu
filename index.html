@@ -4,11 +4,12 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>AI 가위바위보 게임</title>
+    <link href="https://fonts.googleapis.com/css2?family=Jua&display=swap" rel="stylesheet">
     <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@latest/dist/tf.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@teachablemachine/image@latest/dist/teachablemachine-image.min.js"></script>
     <style>
         body {
-            font-family: 'Arial', sans-serif;
+            font-family: 'Jua', sans-serif;
             text-align: center;
             background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
             margin: 0;
@@ -35,37 +36,45 @@
         
         .game-area {
             display: flex;
-            justify-content: space-around;
-            align-items: center;
+            justify-content: center;
+            align-items: flex-start;
+            gap: 20px;
             margin: 40px 0;
-            flex-wrap: wrap;
+            flex-wrap: nowrap;
         }
         
         .player-section, .ai-section {
             background: rgba(255, 255, 255, 0.2);
             border-radius: 15px;
-            padding: 20px;
-            margin: 10px;
-            min-width: 250px;
+            padding: 15px;
+            width: 240px;
+            height: 320px;
+            flex-shrink: 0;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
         }
         
         #webcam-container {
-            width: 224px;
-            height: 224px;
+            width: 200px;
+            height: 200px;
             border: 3px solid #fff;
             border-radius: 15px;
-            margin: 0 auto 20px;
+            margin: 0 auto 15px;
             overflow: hidden;
             background: #000;
         }
         
-        .choice-display {
-            font-size: 4em;
-            margin: 20px 0;
-            min-height: 80px;
+        .ai-display {
+            width: 200px;
+            height: 200px;
+            margin: 0 auto 15px;
             display: flex;
             align-items: center;
             justify-content: center;
+            border: 3px solid #fff;
+            border-radius: 15px;
+            background: rgba(100,100,100,0.3);
         }
         
         .score-board {
@@ -87,11 +96,12 @@
         }
         
         button {
-            background: linear-gradient(45deg, #ff6b6b, #ee5a24);
+            background: linear-gradient(45deg, #663399, #4a1a4a);
             border: none;
             color: white;
             padding: 15px 30px;
             font-size: 1.1em;
+            font-family: 'Jua', sans-serif;
             border-radius: 25px;
             cursor: pointer;
             margin: 10px;
@@ -132,28 +142,48 @@
         .draw { color: #ffa502; }
         
         .prediction-container {
-            margin: 20px 0;
-            font-size: 1.1em;
+            margin: 10px 0;
+            font-size: 0.9em;
+            max-height: 80px;
+            overflow-y: auto;
         }
         
         #label-container div {
-            margin: 5px 0;
-            padding: 8px;
+            margin: 3px 0;
+            padding: 5px;
             background: rgba(255, 255, 255, 0.1);
-            border-radius: 8px;
+            border-radius: 5px;
+            font-size: 0.8em;
         }
         
         .vs {
-            font-size: 2em;
+            font-size: 2.5em;
             font-weight: bold;
-            margin: 0 20px;
+            color: #fff;
             text-shadow: 2px 2px 4px rgba(0, 0, 0, 0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            margin: 0 15px;
+            min-width: 60px;
+        }
+        
+        .debug-info {
+            background: rgba(0, 0, 0, 0.3);
+            padding: 10px;
+            border-radius: 10px;
+            margin: 10px 0;
+            font-size: 0.9em;
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>🎮 AI 가위바위보 게임</h1>
+        
+        <div class="debug-info" id="debug-info">
+            게임을 시작하려면 카메라를 먼저 시작하세요
+        </div>
         
         <div class="score-board">
             <div class="score-item">
@@ -177,18 +207,17 @@
                 <div class="prediction-container">
                     <div id="label-container"></div>
                 </div>
-                <div class="choice-display" id="player-choice">🤔</div>
+                <div style="margin: 15px 0; font-size: 1em; text-align: center;">플레이어 준비!</div>
             </div>
             
             <div class="vs">VS</div>
             
             <div class="ai-section">
                 <h3>🤖 AI</h3>
-                <div style="width: 224px; height: 224px; margin: 0 auto 20px; display: flex; align-items: center; justify-content: center; border: 3px solid #fff; border-radius: 15px; background: rgba(255,255,255,0.1);">
-                    <div style="font-size: 4em;" id="ai-thinking">🤖</div>
+                <div class="ai-display">
+                    <div style="font-size: 3em;" id="ai-choice">🤖</div>
                 </div>
-                <div style="margin: 20px 0; font-size: 1.1em;">AI 준비 완료!</div>
-                <div class="choice-display" id="ai-choice">🤔</div>
+                <div style="margin: 15px 0; font-size: 1em; text-align: center;">AI 준비 완료!</div>
             </div>
         </div>
         
@@ -196,59 +225,59 @@
         <div class="countdown" id="countdown"></div>
         
         <div class="controls">
-            <button id="start-btn" onclick="startCamera()">카메라 시작</button>
+            <button id="start-btn" onclick="init()">카메라 시작</button>
             <button id="play-btn" onclick="playGame()" disabled>게임 시작</button>
             <button onclick="resetScore()">점수 리셋</button>
         </div>
     </div>
 
     <script type="text/javascript">
-        // 현재 폴더에 있는 모델 파일들을 사용
         const URL = "./";
         
         let model, webcam, labelContainer, maxPredictions;
         let isGameActive = false;
         let gameStats = { wins: 0, draws: 0, losses: 0 };
         
-        // 게임 선택지
         const choices = ['가위', '바위', '보'];
         const choiceEmojis = { '가위': '✂️', '바위': '✊', '보': '✋' };
         
-        // 모델 로드
-        async function init() {
-            const modelURL = URL + "model.json";
-            const metadataURL = URL + "metadata.json";
-            
-            try {
-                model = await tmImage.load(modelURL, metadataURL);
-                maxPredictions = model.getTotalClasses();
-                console.log("모델 로드 완료!");
-            } catch (error) {
-                console.error("모델 로드 실패:", error);
-                alert("모델을 로드할 수 없습니다. 파일 경로를 확인해주세요.");
-            }
+        function updateDebug(message) {
+            document.getElementById('debug-info').innerHTML = message;
+            console.log(message);
         }
         
-        // 카메라 시작
-        async function startCamera() {
-            if (!model) {
-                await init();
-            }
-            
-            const flip = true;
-            webcam = new tmImage.Webcam(224, 224, flip);
-            await webcam.setup();
-            await webcam.play();
-            window.requestAnimationFrame(loop);
-            
-            document.getElementById("webcam-container").appendChild(webcam.canvas);
-            document.getElementById("start-btn").disabled = true;
-            document.getElementById("play-btn").disabled = false;
-            
-            // 예측 결과 표시 컨테이너 생성
-            labelContainer = document.getElementById("label-container");
-            for (let i = 0; i < maxPredictions; i++) {
-                labelContainer.appendChild(document.createElement("div"));
+        async function init() {
+            try {
+                updateDebug("모델 로딩 중...");
+                
+                const modelURL = URL + "model.json";
+                const metadataURL = URL + "metadata.json";
+                
+                model = await tmImage.load(modelURL, metadataURL);
+                maxPredictions = model.getTotalClasses();
+                
+                updateDebug(`모델 로드 완료! 클래스 수: ${maxPredictions}`);
+                
+                const flip = true;
+                webcam = new tmImage.Webcam(200, 200, flip);
+                await webcam.setup();
+                await webcam.play();
+                window.requestAnimationFrame(loop);
+                
+                document.getElementById("webcam-container").appendChild(webcam.canvas);
+                labelContainer = document.getElementById("label-container");
+                for (let i = 0; i < maxPredictions; i++) {
+                    labelContainer.appendChild(document.createElement("div"));
+                }
+                
+                document.getElementById("start-btn").disabled = true;
+                document.getElementById("play-btn").disabled = false;
+                
+                updateDebug("카메라 시작 완료! 손동작을 해보세요.");
+                
+            } catch (error) {
+                updateDebug(`오류 발생: ${error.message}`);
+                console.error("Error:", error);
             }
         }
         
@@ -260,25 +289,23 @@
             window.requestAnimationFrame(loop);
         }
         
-        // 예측 함수
         async function predict() {
-            if (!model || !webcam) return;
-            
             const prediction = await model.predict(webcam.canvas);
             
+            let bestChoice = null;
+            let bestProbability = 0;
+            
             for (let i = 0; i < maxPredictions; i++) {
-                const className = prediction[i].className;
-                const probability = (prediction[i].probability * 100).toFixed(1);
-                labelContainer.childNodes[i].innerHTML = `${className}: ${probability}%`;
+                const classPrediction = prediction[i].className + ": " + prediction[i].probability.toFixed(2);
+                labelContainer.childNodes[i].innerHTML = classPrediction;
                 
-                // 가장 높은 확률의 선택지 표시
-                if (probability > 70) {
-                    document.getElementById("player-choice").innerHTML = choiceEmojis[className] || '🤔';
+                if (prediction[i].probability > bestProbability) {
+                    bestProbability = prediction[i].probability;
+                    bestChoice = prediction[i].className;
                 }
             }
         }
         
-        // 게임 시작
         async function playGame() {
             if (!webcam || !model) {
                 alert("먼저 카메라를 시작해주세요!");
@@ -288,32 +315,28 @@
             isGameActive = true;
             document.getElementById("play-btn").disabled = true;
             document.getElementById("game-result").innerHTML = "";
-            document.getElementById("player-choice").innerHTML = "🤔";
-            document.getElementById("ai-choice").innerHTML = "🤔";
+            document.getElementById("ai-choice").innerHTML = "🤖";
             
-            // 카운트다운
+            updateDebug("게임 시작! 3초 후 촬영합니다!");
+            
             await countdown();
             
-            // 플레이어 선택 감지
-            const playerChoice = await detectPlayerChoice();
-            
-            // AI 선택 (랜덤)
             const aiChoice = choices[Math.floor(Math.random() * choices.length)];
-            
-            // 결과 표시
-            document.getElementById("player-choice").innerHTML = choiceEmojis[playerChoice];
             document.getElementById("ai-choice").innerHTML = choiceEmojis[aiChoice];
             
-            // 승부 판정
+            updateDebug(`AI가 ${aiChoice}를 선택했습니다!`);
+            
+            const playerChoice = await detectPlayerChoice();
+            updateDebug(`플레이어: ${playerChoice}, AI: ${aiChoice}`);
+            
             const result = determineWinner(playerChoice, aiChoice);
-            displayResult(result);
+            displayResult(result, playerChoice, aiChoice);
             updateScore(result);
             
             isGameActive = false;
             document.getElementById("play-btn").disabled = false;
         }
         
-        // 카운트다운
         function countdown() {
             return new Promise((resolve) => {
                 let count = 3;
@@ -334,7 +357,6 @@
             });
         }
         
-        // 플레이어 선택 감지
         async function detectPlayerChoice() {
             if (!model || !webcam) return '가위';
             
@@ -352,7 +374,6 @@
             return bestChoice;
         }
         
-        // 승부 판정
         function determineWinner(player, ai) {
             if (player === ai) return 'draw';
             
@@ -367,27 +388,25 @@
             return 'lose';
         }
         
-        // 결과 표시
-        function displayResult(result) {
+        function displayResult(result, player, ai) {
             const resultEl = document.getElementById("game-result");
             
             switch (result) {
                 case 'win':
-                    resultEl.innerHTML = "🎉 승리!";
+                    resultEl.innerHTML = `🎉 승리! (${player} vs ${ai})`;
                     resultEl.className = "result win";
                     break;
                 case 'lose':
-                    resultEl.innerHTML = "😢 패배!";
+                    resultEl.innerHTML = `😢 패배! (${player} vs ${ai})`;
                     resultEl.className = "result lose";
                     break;
                 case 'draw':
-                    resultEl.innerHTML = "🤝 무승부!";
+                    resultEl.innerHTML = `🤝 무승부! (${player} vs ${ai})`;
                     resultEl.className = "result draw";
                     break;
             }
         }
         
-        // 점수 업데이트
         function updateScore(result) {
             gameStats[result === 'win' ? 'wins' : result === 'lose' ? 'losses' : 'draws']++;
             
@@ -396,17 +415,14 @@
             document.getElementById("losses").innerHTML = gameStats.losses;
         }
         
-        // 점수 리셋
         function resetScore() {
             gameStats = { wins: 0, draws: 0, losses: 0 };
             document.getElementById("wins").innerHTML = "0";
             document.getElementById("draws").innerHTML = "0";
             document.getElementById("losses").innerHTML = "0";
             document.getElementById("game-result").innerHTML = "";
+            updateDebug("점수가 리셋되었습니다.");
         }
-        
-        // 페이지 로드 시 모델 초기화
-        window.onload = init;
     </script>
 </body>
 </html>
